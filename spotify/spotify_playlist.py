@@ -60,6 +60,7 @@ example: song_name, song_length, artist, popularity, url = get_json("I'm+gonna+g
     song_url = ["" for x in range(n_songs)]
     song_popularity = np.zeros(n_songs)#["" for x in range(n_songs)]
     artist_names = ["" for x in range(n_songs)]
+    song_artist = ["" for x in range(n_songs)]
     for j in range(n_songs): #sets the values for song_names, length etc
         #print j, n_songs
         song_names[j] = song_list["tracks"][j]["name"]
@@ -67,7 +68,8 @@ example: song_name, song_length, artist, popularity, url = get_json("I'm+gonna+g
         song_url[j] = song_list["tracks"][j]["href"]
         song_popularity[j] = song_list["tracks"][j]["popularity"]
         artist_names[j] = song_list["tracks"][j]["artists"][0]["name"]
-    return song_names, song_length, song_url, song_popularity, artist_names
+        song_artist[j] = song_names[j]+", "+artist_names[j]
+    return song_names, song_length, song_url, song_popularity, artist_names, song_artist
 
 def coefficients(tot_songs,u_length):
     """
@@ -89,13 +91,15 @@ assign less weight to matches that meet less of the phrase, adjust weight from 0
 value.
 input: phrase, alpha, beta, total songs (only if alpha or beta are not set), weight
 output: unique song name, song length, song url, weighted song popularity, artist name, chi square values, phrase
-outfile: phrase.txt --> spotify url
+outfile1: phrase.txt --> spotify url
+outfile2: phrase_ivy.txt --> song name, artist name
 example: sn, sl, su, sp, an, chis, p = spotify_poetry("the truth will set you free",alpha=2.5,beta=1,tot_songs=50, wt=1.)
     """
     phrases = word_count(phrase) #gets the possible phrases that can be made out of "phrase"
     if not os.path.exists('/home/tim/spotify'):
         os.mkdir('/home/tim/spotify')
     outfile = '/home/tim/spotify/'+phrase.replace(' ','_')+'.txt' #creates the outfile for the spotify urls
+    outfile_ivy = '/home/tim/spotify/'+phrase.replace(' ','_')+'_ivy.txt' #creates the outfile for the spotify urls
     n_phrases = np.size(phrases)
     n_rows = np.zeros((n_phrases))
     song_name = [] #sets variables to an empty array
@@ -103,16 +107,18 @@ example: sn, sl, su, sp, an, chis, p = spotify_poetry("the truth will set you fr
     song_url = []
     song_popularity = []
     artist_name = []
+    song_artist = []
     for j in range(n_phrases):
         print phrases[j]
         weight = len(phrases[j])/float(len(phrases[0])) #how similar the current phrase is to the original phrase
-        sn, sl, su, sp, an = get_json(phrases[j]) #get song name, etc
+        sn, sl, su, sp, an, sa = get_json(phrases[j]) #get song name, etc
         song_name = np.append(song_name, sn, axis=0)
         song_length = np.append(song_length, sl, axis=0)
         song_url = np.append(song_url, su, axis=0)
         song_popularity = np.append(song_popularity, sp*weight**wt, axis=0) #set weighted popularity
         artist_name = np.append(artist_name, an, axis=0)
-    u_songs = np.unique(sn) #gets only unique song names
+        song_artist = np.append(song_artist, sa, axis=0)
+    u_songs = np.unique(sa) #gets only unique song names
     n_songs = np.size(sn)
     n_u_songs = np.size(u_songs)
     u_length = np.zeros(n_u_songs)
@@ -122,9 +128,9 @@ example: sn, sl, su, sp, an, chis, p = spotify_poetry("the truth will set you fr
     u_aname = u_songs.copy()
     for j in range(n_songs): #find unique songs in song list
         for k in range(n_u_songs):
-            if sn[j] == u_songs[k]: #find the popularity of the song if theres a match
-                if u_popularity[k] <= song_popularity[j]: #override the old parameters with the new parameters if rating changes
-                    u_popularity[k] = song_popularity[j]
+            if sa[j] == u_songs[k]: #find the popularity of the song if theres a match
+                #if u_popularity[k] <= song_popularity[j]: #override the old parameters with the new parameters and increase the rating
+                    u_popularity[k] += song_popularity[j]
                     u_length[k] = song_length[j]
                     u_url[k] = 'http://open.spotify.com/track/'+song_url[j][14:]
                     u_aname[k] = artist_name[j]
@@ -142,4 +148,5 @@ example: sn, sl, su, sp, an, chis, p = spotify_poetry("the truth will set you fr
             chis[j] = alpha*(j+1)+beta*np.sum(np.std(u_length[:j]))**2./float(j) #get the chi squared value
     min_chis = np.argsort(chis)[0] #find where chi square is a minimum
     np.savetxt(outfile,u_url[0:min_chis],fmt='%s',delimiter=', ') #saves the URLs of the songs (up to the spot where chi square is minimum)
+    np.savetxt(outfile_ivy,u_songs[0:min_chis],fmt='%r',delimiter=', ') #saves the URLs of the songs (up to the spot where chi square is minimum)
     return u_songs[:min_chis], u_length[:min_chis], u_url[:min_chis], u_popularity[:min_chis], u_aname[:min_chis],chis,phrase
