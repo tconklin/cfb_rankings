@@ -141,5 +141,5 @@ example: sn, sl, su, sp, an, chis, p = spotify_poetry("the truth will set you fr
         for j in range(5,n_u_songs):
             chis[j] = alpha*(j+1)+beta*np.sum(np.std(u_length[:j]))**2./float(j) #get the chi squared value
     min_chis = np.argsort(chis)[0] #find where chi square is a minimum
-    np.savetxt(outfile,u_url[:min_chis],fmt='%s',delimiter=', ') #saves the URLs of the songs (up to the spot where chi square is minimum)
+    np.savetxt(outfile,u_url[0:min_chis],fmt='%s',delimiter=', ') #saves the URLs of the songs (up to the spot where chi square is minimum)
     return u_songs[:min_chis], u_length[:min_chis], u_url[:min_chis], u_popularity[:min_chis], u_aname[:min_chis],chis,phrase
