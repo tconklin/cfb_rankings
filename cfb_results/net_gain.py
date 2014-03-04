@@ -4,7 +4,7 @@ import os
 import json
 
 
-db = MySQLdb.connect(user="root",passwd="057005223",db="cfb_game_results")
+db = MySQLdb.connect(user=/user,passwd=/pwd,db="cfb_game_results")
 play_query = db.cursor() #query tool for teams
 play_query.execute("""select play_number, spot, play_type, o_team_code,	o_points, game_code from play_by_play""")
 play_codes = play_query.fetchall()
